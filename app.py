@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import joblib
@@ -20,11 +19,11 @@ st.set_page_config(
 # LOAD TRAINED MODEL
 # ============================================
 
-MODEL_PATH = "fraud_detection_model.pkl"
+MODEL_PATH = "Fraud Detection Model.pkl"
 
 if not os.path.exists(MODEL_PATH):
     st.error(
-        "Model file not found. Please run train_model.py first."
+        "❌ Model file not found. Please run train_model.py first."
     )
     st.stop()
 
@@ -32,13 +31,19 @@ model = joblib.load(MODEL_PATH)
 
 
 # ============================================
-# TITLE
+# HEADER
 # ============================================
 
 st.title("💳 Credit Card Fraud Detection")
+
 st.write(
-    "Machine Learning based system for detecting "
-    "fraudulent credit card transactions."
+    "A Machine Learning based system for detecting "
+    "potentially fraudulent credit card transactions."
+)
+
+st.caption(
+    "Model: Logistic Regression | "
+    "Fraud Recall: 91.84%"
 )
 
 st.divider()
@@ -48,23 +53,36 @@ st.divider()
 # SIDEBAR
 # ============================================
 
-st.sidebar.title("About Project")
+st.sidebar.title("📌 About Project")
 
 st.sidebar.info(
     """
-    This project uses Machine Learning to classify
-    credit card transactions as:
+This project uses Machine Learning to classify
+credit card transactions as:
 
-    • Legitimate Transaction
-    • Fraudulent Transaction
+✅ Legitimate Transaction
 
-    Model:
-    Logistic Regression
+🚨 Fraudulent Transaction
 
-    Dataset:
-    Credit Card Fraud Detection Dataset
-    """
+Model:
+Logistic Regression
+
+Dataset:
+Credit Card Fraud Detection Dataset
+
+Dataset Size:
+284,807 transactions
+"""
 )
+
+st.sidebar.markdown("---")
+
+st.sidebar.subheader("📊 Model Performance")
+
+st.sidebar.write("Accuracy: **97.55%**")
+st.sidebar.write("Precision: **6.10%**")
+st.sidebar.write("Recall: **91.84%**")
+st.sidebar.write("F1-Score: **11.44%**")
 
 
 # ============================================
@@ -79,38 +97,38 @@ st.write(
 )
 
 
-# --------------------------------------------
-# Basic transaction information
-# --------------------------------------------
+# ============================================
+# BASIC TRANSACTION INFORMATION
+# ============================================
 
 col1, col2 = st.columns(2)
 
 with col1:
     time_value = st.number_input(
-        "Time",
+        "⏱️ Time",
         value=0.0,
         format="%.4f"
     )
 
 with col2:
     amount_value = st.number_input(
-        "Transaction Amount",
+        "💰 Transaction Amount",
         min_value=0.0,
         value=100.0,
         format="%.2f"
     )
 
 
-st.subheader("Transaction Features")
+# ============================================
+# TRANSACTION FEATURES
+# ============================================
+
+st.subheader("🧮 Transaction Features")
 
 st.caption(
     "Enter values for V1 to V28. Default value is 0."
 )
 
-
-# ============================================
-# V1 - V28 INPUTS
-# ============================================
 
 features = {}
 
@@ -121,6 +139,7 @@ for i in range(1, 29):
     column_index = (i - 1) % 4
 
     with columns[column_index]:
+
         features[f"V{i}"] = st.number_input(
             f"V{i}",
             value=0.0,
@@ -147,51 +166,56 @@ predict_button = st.button(
 
 if predict_button:
 
-    # Create input dictionary
+    # ------------------------------------------
+    # CREATE INPUT DATA
+    # ------------------------------------------
+
     input_data = {
         "Time": time_value
     }
 
-    # Add V1-V28
     input_data.update(features)
 
-    # Add Amount
     input_data["Amount"] = amount_value
 
-    # Convert to DataFrame
+
+    # ------------------------------------------
+    # CONVERT INPUT INTO DATAFRAME
+    # ------------------------------------------
+
     input_df = pd.DataFrame([input_data])
 
-    # Make prediction
+
+    # ------------------------------------------
+    # MAKE PREDICTION
+    # ------------------------------------------
+
     prediction = model.predict(input_df)[0]
 
-    # Get probability
+
+    # ------------------------------------------
+    # GET PREDICTION PROBABILITY
+    # ------------------------------------------
+
     probability = model.predict_proba(input_df)[0]
 
-    fraud_probability = probability[1] * 100
     legitimate_probability = probability[0] * 100
+    fraud_probability = probability[1] * 100
 
 
-    # ========================================
-    # RESULT
-    # ========================================
+    # ==========================================
+    # PREDICTION RESULT
+    # ==========================================
 
     st.divider()
 
     st.subheader("📊 Prediction Result")
 
+
     if prediction == 1:
 
         st.error(
             "🚨 FRAUDULENT TRANSACTION DETECTED"
-        )
-
-        st.write(
-            f"Fraud Probability: **{fraud_probability:.2f}%**"
-        )
-
-        st.write(
-            f"Legitimate Probability: "
-            f"**{legitimate_probability:.2f}%**"
         )
 
     else:
@@ -200,26 +224,74 @@ if predict_button:
             "✅ TRANSACTION APPEARS LEGITIMATE"
         )
 
-        st.write(
-            f"Legitimate Probability: "
-            f"**{legitimate_probability:.2f}%**"
+
+    # ==========================================
+    # PROBABILITY METRICS
+    # ==========================================
+
+    result_col1, result_col2 = st.columns(2)
+
+    with result_col1:
+
+        st.metric(
+            "✅ Legitimate Probability",
+            f"{legitimate_probability:.2f}%"
         )
 
-        st.write(
-            f"Fraud Probability: **{fraud_probability:.2f}%**"
+    with result_col2:
+
+        st.metric(
+            "🚨 Fraud Probability",
+            f"{fraud_probability:.2f}%"
         )
 
 
-    # ========================================
-    # SHOW INPUT DATA
-    # ========================================
+    # ==========================================
+    # PROBABILITY CHART
+    # ==========================================
 
-    with st.expander("View Transaction Data"):
+    st.subheader("📈 Prediction Probability")
+
+    probability_data = pd.DataFrame(
+        {
+            "Probability": [
+                legitimate_probability,
+                fraud_probability
+            ]
+        },
+        index=[
+            "Legitimate",
+            "Fraud"
+        ]
+    )
+
+    st.bar_chart(
+        probability_data
+    )
+
+
+    # ==========================================
+    # INPUT DATA
+    # ==========================================
+
+    with st.expander("🔎 View Transaction Input"):
 
         st.dataframe(
             input_df,
             use_container_width=True
         )
+
+
+    # ==========================================
+    # DISCLAIMER
+    # ==========================================
+
+    st.info(
+        "⚠️ This project is for educational and "
+        "demonstration purposes only. It should not "
+        "be used as a real-world financial fraud "
+        "detection system."
+    )
 
 
 # ============================================
@@ -229,6 +301,6 @@ if predict_button:
 st.divider()
 
 st.caption(
-    "Credit Card Fraud Detection | "
-    "Machine Learning + Streamlit"
+    "💳 Credit Card Fraud Detection | "
+    "Machine Learning Project"
 )
